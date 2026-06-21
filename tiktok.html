@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TikTok Downloader</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-family:Arial,sans-serif;
+    background:url('https://files.catbox.moe/0p1doa.png') center center/cover no-repeat;
+    padding:20px;
+}
+
+.container{
+    width:100%;
+    max-width:500px;
+    text-align:center;
+}
+
+.banner{
+    width:100%;
+    height:120px;
+    border-radius:20px;
+    overflow:hidden;
+    margin-bottom:15px;
+    box-shadow:0 5px 15px rgba(0,0,0,.4);
+}
+
+.banner img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.input-box{
+    background:#fff;
+    border:5px solid #d400ff;
+    border-radius:15px;
+    padding:8px;
+    display:flex;
+    align-items:center;
+    margin-bottom:15px;
+}
+
+.input-box input{
+    flex:1;
+    border:none;
+    outline:none;
+    font-size:16px;
+    padding:10px;
+}
+
+.paste-btn{
+    background:none;
+    border:none;
+    color:#ff6fff;
+    font-weight:bold;
+    font-size:18px;
+    cursor:pointer;
+}
+
+.download-btn{
+    width:70%;
+    padding:15px;
+    border:none;
+    border-radius:15px;
+    cursor:pointer;
+    color:#fff;
+    font-size:24px;
+    font-weight:bold;
+    background:linear-gradient(to bottom,#ff00ff,#a300a3);
+    box-shadow:0 5px 0 #6d006d;
+}
+
+.download-btn:active{
+    transform:translateY(3px);
+    box-shadow:0 2px 0 #6d006d;
+}
+
+.card{
+    margin-top:20px;
+    background:rgba(255,255,255,.95);
+    color:#000;
+    padding:15px;
+    border-radius:15px;
+}
+
+.card img,
+.card video{
+    width:100%;
+    border-radius:10px;
+    margin-top:10px;
+}
+
+.link-btn{
+    display:block;
+    margin-top:10px;
+    text-decoration:none;
+    color:#fff;
+    background:#b400ff;
+    padding:12px;
+    border-radius:10px;
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="banner">
+        <img src="https://files.catbox.moe/0p1doa.png">
+    </div>
+
+    <div class="input-box">
+        <input id="url" placeholder="Masukan link https://tiktok">
+        <button class="paste-btn" onclick="pasteText()">Paste</button>
+    </div>
+
+    <button class="download-btn" onclick="downloadVideo()">
+        Unduh Video
+    </button>
+
+    <div id="result"></div>
+
+</div>
+
+<script>
+
+function fixUrl(url){
+    if(!url) return "";
+
+    url = url.replace("https//:","https://");
+
+    if(url.startsWith("//")){
+        url = "https:" + url;
+    }
+
+    if(!url.startsWith("http")){
+        url = "https://" + url;
+    }
+
+    return url;
+}
+
+async function pasteText(){
+    try{
+        const text = await navigator.clipboard.readText();
+        document.getElementById("url").value = text;
+    }catch(e){
+        alert("Clipboard tidak tersedia");
+    }
+}
+
+async function downloadVideo(){
+
+    const url = document.getElementById("url").value;
+    const result = document.getElementById("result");
+
+    if(!url){
+        alert("Masukkan URL TikTok");
+        return;
+    }
+
+    result.innerHTML = "Loading...";
+
+    try{
+
+        const res = await fetch(
+            "https://www.tikwm.com/api/?url=" +
+            encodeURIComponent(url) +
+            "&hd=1"
+        );
+
+        const json = await res.json();
+        const d = json.data;
+
+        if(!d){
+            result.innerHTML = "Gagal mengambil data";
+            return;
+        }
+
+        const videoUrl = fixUrl(
+            d.hdplay || d.play || d.wmplay
+        );
+
+        const musicUrl = fixUrl(
+            d.music || d.music_info?.play
+        );
+
+        result.innerHTML = `
+        <div class="card">
+
+            <h3>${d.title || "No Title"}</h3>
+            <p>👤 ${d.author?.nickname || "-"}</p>
+
+            <img src="https://www.tikwm.com${d.cover}">
+
+            <video controls src="${videoUrl}"></video>
+
+            <a class="link-btn"
+               href="${videoUrl}"
+               download>
+               ⬇ Download Video
+            </a>
+
+            <a class="link-btn"
+               href="${musicUrl}"
+               download>
+               🎵 Download Audio
+            </a>
+
+            <p style="margin-top:10px">
+                ❤️ ${d.digg_count || 0}
+                |
+                👀 ${d.play_count || 0}
+            </p>
+
+        </div>
+        `;
+
+    }catch(err){
+        console.log(err);
+        result.innerHTML =
+        "❌ Error / CORS blocked";
+    }
+}
+</script>
+
+</body>
+</html>
